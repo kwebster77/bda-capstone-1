@@ -7,13 +7,27 @@ import time
 def download_video(url):
     Path("videos").mkdir(exist_ok=True)
 
-    # Save inside videos/ using the video title as the filename
     ydl_options = {
-        "outtmpl": "videos/%(title)s.%(ext)s"
+        "outtmpl": "videos/%(title)s.%(ext)s",
+        "socket_timeout": 30,
     }
 
-    with yt_dlp.YoutubeDL(ydl_options) as ydl:
-        ydl.download([url])
+    try:
+        with yt_dlp.YoutubeDL(ydl_options) as ydl:
+            ydl.download([url])
+
+        return {
+            "url": url,
+            "status": "success",
+            "error": "",
+        }
+
+    except Exception as error:
+        return {
+            "url": url,
+            "status": "failed",
+            "error": str(error),
+        }
 
 def read_video_urls(csv_path):
     urls = []
@@ -29,39 +43,76 @@ def create_report(sequential_time, parallel_time, video_count):
     improvement = round((sequential_time - parallel_time) / sequential_time * 100, 2) if sequential_time > 0 else 0
 
     with open("reports/sequential_report.md", "w") as file:
-        file.write("# Video Download Performance Report\n\n")
-        file.write(f"**Videos downloaded:** {video_count}\n\n")
-        file.write("## Results\n\n")
-        file.write("| Method | Time (seconds) |\n")
-        file.write("|--------|---------------:|\n")
-        file.write(f"| Sequential | {sequential_time} |\n")
-        file.write(f"| Parallel | {parallel_time} |\n\n")
-        file.write("## Comparison\n\n")
-        file.write(f"- **Speedup:** {speedup}x faster\n")
-        file.write(f"- **Time saved:** {round(sequential_time - parallel_time, 2)} seconds ({improvement}%)\n\n")
-        file.write("## Complexity\n\n")
-        file.write("| Method | Time Complexity | Space Complexity |\n")
-        file.write("|--------|:-:|:-:|\n")
-        file.write("| Sequential | O(n) | O(1) |\n")
-        file.write("| Parallel | O(n/p) | O(p) |\n\n")
-        file.write("With LLM Support to format the mkd file ;)")
+        file.write(f"""# Video Download Performance Report
+
+**Videos downloaded:** {video_count}
+
+## Results
+
+| Method | Time (seconds) |
+|--------|---------------:|
+| Sequential | {sequential_time} |
+| Parallel | {parallel_time} |
+
+## Comparison
+
+- **Speedup:** {speedup}x faster
+- **Time saved:** {round(sequential_time - parallel_time, 2)} seconds ({improvement}%)
+
+## Complexity
+
+| Method | Time Complexity | Space Complexity |
+|--------|:-:|:-:|
+| Sequential | O(n) | O(1) |
+| Parallel | O(n/p) | O(p) |
+
+With LLM support to format the mkd file better ;)
+""")
+
+def create_failure_report(sequential_results, parallel_results):
+    Path("reports").mkdir(exist_ok=True)
+    failed_sequential = [r for r in sequential_results if r["status"] == "failed"]
+    failed_parallel = [r for r in parallel_results if r["status"] == "failed"]
+    all_failed = failed_sequential + failed_parallel
+
+    with open("reports/failed_downloads.md", "w") as file:
+        file.write("# Failed Downloads Report\n\n")
+        file.write(f"**Total failures:** {len(all_failed)}\n\n")
+
+        if failed_sequential:
+            file.write("Sequential Failures\n\n")
+            for r in failed_sequential:
+                file.write(f"- `{r['url']}` — {r['error']}\n")
+            file.write("\n")
+
+        if failed_parallel:
+            file.write("Parallel Failures\n\n")
+            for r in failed_parallel:
+                file.write(f"- `{r['url']}` — {r['error']}\n")
+            file.write("\n")
+
+        if not all_failed:
+            file.write("No failures recorded.\n")
 
 def get_video_metadata(url):
     ydl_options = {
         "quiet": True,
         "skip_download": True,
     }
-    with yt_dlp.YoutubeDL(ydl_options) as ydl:
-        info = ydl.extract_info(url, download=False)
-    metadata = {
-        "title": info.get("title"),
-        "duration": info.get("duration"),
-        "uploader": info.get("uploader"),
-        "view_count": info.get("view_count"),
-        "ext": info.get("ext"),
-        "url": url,
-    }
-    return metadata
+    try:
+        with yt_dlp.YoutubeDL(ydl_options) as ydl:
+            info = ydl.extract_info(url, download=False)
+        return {
+            "title": info.get("title"),
+            "duration": info.get("duration"),
+            "uploader": info.get("uploader"),
+            "view_count": info.get("view_count"),
+            "ext": info.get("ext"),
+            "url": url,
+        }
+    except Exception as error:
+        print(f"Failed to get metadata for {url}: {error}")
+        return None
 
 def save_metadata_csv(metadata_rows, filepath="data/video_metadata.csv"):
     fieldnames = ["title", "duration", "uploader", "view_count", "ext", "url"]
@@ -74,19 +125,24 @@ def collect_metadata(urls):
     metadata_rows = []
     for url in urls:
         metadata = get_video_metadata(url)
-        metadata_rows.append(metadata)
+        if metadata:
+            metadata_rows.append(metadata)
     save_metadata_csv(metadata_rows)
     print(f"Saved metadata for {len(metadata_rows)} videos to data/video_metadata.csv")
 
 def download_sequential(urls):
+    results = []
     start_time = time.perf_counter()
     for url in urls:
-        download_video(url)
-    return round(time.perf_counter() - start_time, 2)
+        result = download_video(url)
+        results.append(result)
+    elapsed = round(time.perf_counter() - start_time, 2)
+    return elapsed, results
 
 def download_parallel(urls):
     from multiprocessing import Pool
     with Pool() as pool:
         start_time = time.perf_counter()
-        pool.map(download_video, urls)
-    return round(time.perf_counter() - start_time, 2)
+        results = pool.map(download_video, urls)
+    elapsed = round(time.perf_counter() - start_time, 2)
+    return elapsed, list(results)

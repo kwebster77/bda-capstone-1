@@ -6,13 +6,13 @@
 
 | Method | Time (seconds) |
 |--------|---------------:|
-| Sequential | 5.76 |
+| Sequential | 5.29 |
 | Parallel | 1.49 |
 
 ## Comparison
 
-- **Speedup:** 3.87x faster
-- **Time saved:** 4.27 seconds (74.13%)
+- **Speedup:** 3.55x faster
+- **Time saved:** 3.8 seconds (71.83%)
 
 ## Complexity
 
@@ -21,4 +21,4 @@
 | Sequential | O(n) | O(1) |
 | Parallel | O(n/p) | O(p) |
 
-With LLM Support to format the mkd file ;)
+With LLM support to format the mkd file better ;)
