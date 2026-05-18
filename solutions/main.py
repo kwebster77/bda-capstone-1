@@ -1,4 +1,11 @@
-from library import read_video_urls, collect_metadata, download_sequential, download_parallel, create_report, create_failure_report
+from library import (
+    read_video_urls,
+    collect_metadata,
+    download_sequential,
+    download_parallel,
+    create_report,
+    create_failure_report,
+)
 
 
 if __name__ == "__main__":

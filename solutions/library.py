@@ -29,6 +29,7 @@ def download_video(url):
             "error": str(error),
         }
 
+
 def read_video_urls(csv_path):
     urls = []
     with open(csv_path, newline="") as file:
@@ -37,13 +38,19 @@ def read_video_urls(csv_path):
             urls.append(row["url"])
     return urls
 
+
 def create_report(sequential_time, parallel_time, video_count):
     Path("reports").mkdir(exist_ok=True)
     speedup = round(sequential_time / parallel_time, 2) if parallel_time > 0 else 0
-    improvement = round((sequential_time - parallel_time) / sequential_time * 100, 2) if sequential_time > 0 else 0
+    improvement = (
+        round((sequential_time - parallel_time) / sequential_time * 100, 2)
+        if sequential_time > 0
+        else 0
+    )
 
     with open("reports/sequential_report.md", "w") as file:
-        file.write(f"""# Video Download Performance Report
+        file.write(
+            f"""# Video Download Performance Report
 
 **Videos downloaded:** {video_count}
 
@@ -67,7 +74,9 @@ def create_report(sequential_time, parallel_time, video_count):
 | Parallel | O(n/p) | O(p) |
 
 With LLM support to format the mkd file better ;)
-""")
+"""
+        )
+
 
 def create_failure_report(sequential_results, parallel_results):
     Path("reports").mkdir(exist_ok=True)
@@ -94,6 +103,7 @@ def create_failure_report(sequential_results, parallel_results):
         if not all_failed:
             file.write("No failures recorded.\n")
 
+
 def get_video_metadata(url):
     ydl_options = {
         "quiet": True,
@@ -114,12 +124,14 @@ def get_video_metadata(url):
         print(f"Failed to get metadata for {url}: {error}")
         return None
 
+
 def save_metadata_csv(metadata_rows, filepath="data/video_metadata.csv"):
     fieldnames = ["title", "duration", "uploader", "view_count", "ext", "url"]
     with open(filepath, "w", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(metadata_rows)
+
 
 def collect_metadata(urls):
     metadata_rows = []
@@ -130,6 +142,7 @@ def collect_metadata(urls):
     save_metadata_csv(metadata_rows)
     print(f"Saved metadata for {len(metadata_rows)} videos to data/video_metadata.csv")
 
+
 def download_sequential(urls):
     results = []
     start_time = time.perf_counter()
@@ -139,8 +152,10 @@ def download_sequential(urls):
     elapsed = round(time.perf_counter() - start_time, 2)
     return elapsed, results
 
+
 def download_parallel(urls):
     from multiprocessing import Pool
+
     with Pool() as pool:
         start_time = time.perf_counter()
         results = pool.map(download_video, urls)
