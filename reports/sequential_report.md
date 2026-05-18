@@ -6,13 +6,13 @@
 
 | Method | Time (seconds) |
 |--------|---------------:|
-| Sequential | 6.22 |
-| Parallel | 1.77 |
+| Sequential | 5.76 |
+| Parallel | 1.49 |
 
 ## Comparison
 
-- **Speedup:** 3.51x faster
-- **Time saved:** 4.45 seconds (71.54%)
+- **Speedup:** 3.87x faster
+- **Time saved:** 4.27 seconds (74.13%)
 
 ## Complexity
 
