@@ -3,19 +3,21 @@ import time
 from multiprocessing import Pool
 
 
-
 if __name__ == "__main__":
-    # start_time = time.perf_counter()
-    # urls = read_video_urls("data/video_urls.csv")
-    # print("video urls:", urls)
-    # for url in urls:
-    #     download_video(url)
-    #     print(f"Download time for {url}: {time.perf_counter() - start_time} seconds")
-    # end_time = time.perf_counter()
-    # total_time = end_time - start_time
-    # create_report(round(total_time, 2))
+    urls = read_video_urls("data/video_urls.csv")
+
+    # Sequential processing
+    start_time = time.perf_counter()
+    for url in urls:
+        download_video(url)
+    sequential_time = round(time.perf_counter() - start_time, 2)
+    print(f"Sequential time: {sequential_time}s")
+
+    # Parallel processing
     with Pool() as pool:
         start_time = time.perf_counter()
-        results = pool.map(download_video, read_video_urls("data/video_urls.csv"))
-        print("parallel results:", results)
-        create_report(round(time.perf_counter() - start_time, 2))   
+        pool.map(download_video, urls)
+    parallel_time = round(time.perf_counter() - start_time, 2)
+    print(f"Parallel time: {parallel_time}s")
+
+    create_report(sequential_time, parallel_time, len(urls))
